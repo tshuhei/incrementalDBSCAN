@@ -1,4 +1,5 @@
 from scipy.spacial import distance
+from Cluster import Cluster
 
 class IncrementalDBSCAN:
 
@@ -36,19 +37,41 @@ class IncrementalDBSCAN:
         pass
 
 
-
+    #間違ってる
+    #挿入されたポイントだけしかクラスタに追加していない
     def joinCluster(self,point,indexs):
-        pass
+        clusterID = self.dataset[indexs[0]].getAssignedCluster()
+        c = self.clustersList[int(clusterID)]
+        c.addPoint(point.getID())
+        point.assignedCluster(clusterID)
 
 
-
+    
+    #多分間違ってる
+    #クラスターAと、""が混じってる場合を取りこぼしている？
     def updSeedContainsCorePatternsFromOneCluster(self,indexs):
+        clusterID = self.dataset[indexs[0]].getAssignedCluster()
+        for i,idx in enumerate(indexs[1:]):
+            p = self.dataset[idx]
+            if not clusterID == p.getAssignedCluster():
+                return False
         return True
 
 
 
+    #間違ってる
+    #クラスタ作成方法間違ってる！
     def createCluster(self,point,seedPointsIDs):
-        pass
+        c = Cluster(self.clustersCount)
+        clusterID = str(c.getID())
+        self.clustersCount += 1
+        point.assignedCluster(clusterID)
+        c.addPoint(point.getID())
+        for i,id in enumerate(seedPointsIDs):
+            p = self.dataset[id]
+            p.assignedCluster(clusterID)
+            c.addPoint(point.getID())
+        self.clustersList.add(c)
 
 
 
