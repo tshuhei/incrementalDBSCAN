@@ -1,6 +1,6 @@
 class DatasetPattern:
 
-    def __init__(self,features,id):
+    def __init__(self, features, id):
         self.features = features
         self.isBoarder = False
         self.isNoise = False
@@ -13,7 +13,7 @@ class DatasetPattern:
         self.assignedCentroidID = None
         self.indexInPartition = None
 
-    def addFeature(self,d):
+    def addFeature(self, d):
         self.features.append(d)
 
     def getFeatureVectorLength(self):
@@ -34,40 +34,40 @@ class DatasetPattern:
     def getIsBoarder(self):
         return self.isBoarder
 
-    def setIsNoise(self,noise):
+    def setIsNoise(self, noise):
         self.isNoise = noise
 
-    def setIsBoarder(self,boarder):
+    def setIsBoarder(self, boarder):
         self.isBoarder = boarder
 
-    def setIsVisited(self,visited):
+    def setIsVisited(self, visited):
         self.isVisited = visited
 
     def getPointCausedToBeCore(self):
         return self.pointCausedToBeCore
 
-    def setAssignedCentroidID(self,assignedCentroidID):
+    def setAssignedCentroidID(self, assignedCentroidID):
         self.assignedCentroidID = assignedCentroidID
 
     def getAssignedCentroidID(self):
         return self.assignedCentroidID
 
-    def pointCausedToBeCore(self,pointCausedToBeCore):
+    def setPointCausedToBeCore(self, pointCausedToBeCore):
         self.pointCausedToBeCore = pointCausedToBeCore
 
     def getPointsAtEpsIndexs(self):
         return self.pointsAtEpsIndexs
 
-    def addToNeighborhoodPoints(self,i):
+    def addToNeighborhoodPoints(self, i):
         self.pointsAtEpsIndexs.append(i)
-    
-    def isCore(self,minPts):
+
+    def isCore(self, minPts):
         if len(self.pointsAtEpsIndexs) >= minPts:
             return True
         else:
             return False
 
-    def assignedCluster(self, assignedCluster):
+    def setAssignedCluster(self, assignedCluster):
         self.assignedCluster = assignedCluster
 
     def originalCluster(self, originalCluster):
@@ -79,10 +79,8 @@ class DatasetPattern:
     def getAssignedCluster(self):
         return self.assignedCluster
 
-    def setIndexInPartition(self,indexInPartition):
+    def setIndexInPartition(self, indexInPartition):
         self.indexInPartition = indexInPartition
 
     def getIndexInPartition(self):
         return self.indexInPartition
-
-    
