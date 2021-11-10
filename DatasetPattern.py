@@ -7,8 +7,8 @@ class DatasetPattern:
         self.isVisited = False
         self.ID = id
         self.pointCausedToBeCore = -1
-        self.originalCluster = ""
-        self.assignedCluster = ""
+        self.originalCluster = -2
+        self.assignedCluster = -2
         self.pointsAtEpsIndexs = []
         self.assignedCentroidID = None
         self.indexInPartition = None
