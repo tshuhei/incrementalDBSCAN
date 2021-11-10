@@ -27,14 +27,35 @@ class IncrementalDBSCAN:
         print("finished")
 
 
-
+    # 4.Merge UpdSeedに含まれる複数クラスタを統合して１つのクラスタに集約する
     def mergeClusters(self,point,indexs):
-        pass
+        clusters = self.getClusterOfPoints(indexs)
+        masterCluster = clusters[0]
+        masterClusterID = str(masterCluster.getID())
+        point.assignedCluster(masterClusterID)
+        masterClusterID.addPoint(point.getID())
+        for i,c in enumerate(clusters):
+            c.setActive(False)
+            cPoints = c.getPointsIDs()
+            for j,id in enumerate(cPoints):
+                p = self.dataset[id]
+                p.assignedCluster(masterClusterID)
+                masterCluster.addPoint(p.getID())
 
 
-
+    # 4.Mergeのケースの際に、UpdSeedに含まれるクラスター郡を返す
     def getClusterOfPoints(self,pointsIDs):
-        pass
+        clusters = []
+        idsSeen = {}
+        for i,id in enumerate(pointsIDs):
+            p = self.dataset[id]
+            clu = p.getAssignedCluster()
+            if clu == "":
+                continue
+            if not clu in idsSeen.keys():
+                clusters.append(self.clustersList[int(clu)])
+                idsSeen[clu] = True
+        return clusters
 
 
     #間違ってる
