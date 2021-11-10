@@ -96,6 +96,7 @@ class IncrementalDBSCAN:
             if pattern.getID() == p.getID():
                 continue
             if not p.getIsVisited(): # is this error?
+                print("Error: there is an unvisited node")
                 break
             distance = distance.euclidean(pattern.getFeatureVector(),p.getFeatureVector())
             if distance > self.eps:
