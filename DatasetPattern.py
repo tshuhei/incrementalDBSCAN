@@ -1,7 +1,7 @@
 class DatasetPattern:
 
-    def __init__(self,id):
-        self.features = []
+    def __init__(self,features,id):
+        self.features = features
         self.isBoarder = False
         self.isNoise = False
         self.isVisited = False

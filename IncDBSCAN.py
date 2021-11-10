@@ -1,4 +1,4 @@
-from scipy.spacial import distance
+from scipy.spatial import distance
 from Cluster import Cluster
 
 class IncrementalDBSCAN:
