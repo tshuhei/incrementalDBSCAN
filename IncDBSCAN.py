@@ -20,10 +20,16 @@ class IncrementalDBSCAN:
             self.markAsNoise(pattern)
         elif self.updSeedContainsCorePatternsWithNoCluster(updSeedPointIndexs):
             self.createCluster(pattern, updSeedPointIndexs)
-        elif self.updSeedContainsCorePatternsFromOneCluster(updSeedPointIndexs):
-            self.joinCluster(pattern, updSeedPointIndexs)
         else:
-            self.mergeClusters(pattern, updSeedPointIndexs)
+            jc = self.updSeedContainsCorePatternsFromOneCluster(updSeedPointIndexs)
+            if not jc == -1:
+                self.joinCluster(pattern, updSeedPointIndexs, jc)
+            else:
+                self.mergeClusters(pattern, updSeedPointIndexs)
+        #elif self.updSeedContainsCorePatternsFromOneCluster(updSeedPointIndexs):
+        #    self.joinCluster(pattern, updSeedPointIndexs)
+        #else:
+        #    self.mergeClusters(pattern, updSeedPointIndexs)
 
     # 4.Merge UpdSeedに含まれる複数クラスタを統合して１つのクラスタに集約する
     # NO
@@ -58,26 +64,49 @@ class IncrementalDBSCAN:
 
     # 間違ってる
     # 挿入されたポイントだけしかクラスタに追加していない
-    # NO
-    def joinCluster(self, point, indexs):
-        clusterID = self.dataset[indexs[0]].getAssignedCluster()
+    # 論文に沿うようにアルゴリズム修正済み
+    # OK
+    def joinCluster(self, point, indexs, clusterID):
+        #clusterID = self.dataset[indexs[0]].getAssignedCluster()
         c = self.clustersList[clusterID]
-        c.addPoint(point.getID())
-        point.setAssignedCluster(clusterID)
+        #c.addPoint(point.getID())
+        #point.setAssignedCluster(clusterID)
+        cluster_members = []
+        for idx in indexs:
+            p = self.dataset[idx]
+            cluster_members += p.getPointsAtEpsIndexs()
+        cluster_members = set(cluster_members)
+        for cluster_member in cluster_members:
+            p = self.dataset[cluster_member]
+            c.addPoint(point.getID())
+            p.setAssignedCluster(clusterID)
 
     # 多分間違ってる
     # クラスターAと、""が混じってる場合を取りこぼしている？
-    # NO
+    # 論文に沿うようにアルゴリズム修正済み
+    # OK
+    # いやでもやっぱ間違ってる？
     def updSeedContainsCorePatternsFromOneCluster(self, indexs):
-        clusterID = self.dataset[indexs[0]].getAssignedCluster()
-        for i, idx in enumerate(indexs[1:]):
-            p = self.dataset[idx]
-            if not clusterID == p.getAssignedCluster():
-                return False
-        return True
+        #clusterID = self.dataset[indexs[0]].getAssignedCluster()
+        #for i, idx in enumerate(indexs[1:]):
+        #    p = self.dataset[idx]
+        #    if not clusterID == p.getAssignedCluster():
+        #        return False
+        #return True
+        clusterID = []
+        for idx in indexs:
+            clu = self.dataset[idx].getAssignedCluster()
+            if clu == -1 or clu == -2:
+                continue
+            elif not (clu in clusterID):
+                clusterID.append(clu)
+        if len(clusterID) == 1:
+            return clusterID[0]
+        else:
+            return -1
 
-    # 間違ってる
-    # クラスタ作成方法間違ってる！
+
+    # 論文に沿うようにアルゴリズム修正済み
     # OK
     def createCluster(self, point, seedPointsIDs):
         clusterID = self.clustersCount
