@@ -12,6 +12,7 @@ class IncrementalDBSCAN:
         self.clustersCount = 0
 
     # 新たに追加された１点をクラスタリングする
+    # NO
     def clusterPattern(self, pattern):
         pattern.setIsVisited(True)
         updSeedPointIndexs = self.getUpdSeedSet(pattern)
@@ -25,6 +26,7 @@ class IncrementalDBSCAN:
             self.mergeClusters(pattern, updSeedPointIndexs)
 
     # 4.Merge UpdSeedに含まれる複数クラスタを統合して１つのクラスタに集約する
+    # NO
     def mergeClusters(self, point, indexs):
         clusters = self.getClusterOfPoints(indexs)
         masterCluster = clusters[0]
@@ -40,6 +42,7 @@ class IncrementalDBSCAN:
                 masterCluster.addPoint(p.getID())
 
     # 4.Mergeのケースの際に、UpdSeedに含まれるクラスター郡を返す
+    # NO
     def getClusterOfPoints(self, pointsIDs):
         clusters = []
         idsSeen = {}
@@ -55,6 +58,7 @@ class IncrementalDBSCAN:
 
     # 間違ってる
     # 挿入されたポイントだけしかクラスタに追加していない
+    # NO
     def joinCluster(self, point, indexs):
         clusterID = self.dataset[indexs[0]].getAssignedCluster()
         c = self.clustersList[clusterID]
@@ -63,6 +67,7 @@ class IncrementalDBSCAN:
 
     # 多分間違ってる
     # クラスターAと、""が混じってる場合を取りこぼしている？
+    # NO
     def updSeedContainsCorePatternsFromOneCluster(self, indexs):
         clusterID = self.dataset[indexs[0]].getAssignedCluster()
         for i, idx in enumerate(indexs[1:]):
@@ -73,18 +78,27 @@ class IncrementalDBSCAN:
 
     # 間違ってる
     # クラスタ作成方法間違ってる！
+    # OK
     def createCluster(self, point, seedPointsIDs):
-        c = Cluster(self.clustersCount)
-        clusterID = c.getID()
+        clusterID = self.clustersCount
+        c = Cluster(clusterID)
         self.clustersCount += 1
-        point.setAssignedCluster(clusterID)
-        c.addPoint(point.getID())
-        for i, id in enumerate(seedPointsIDs):
+        #point.setAssignedCluster(clusterID)
+        #c.addPoint(point.getID())
+        cluster_members = []
+        for id in seedPointsIDs:
             p = self.dataset[id]
+            cluster_members += p.getPointsAtEpsIndexs()
+            #p.setAssignedCluster(clusterID)
+            #c.addPoint(point.getID())
+        cluster_members = set(cluster_members)
+        for cluster_member in cluster_members:
+            p = self.dataset[cluster_member]
             p.setAssignedCluster(clusterID)
             c.addPoint(point.getID())
         self.clustersList.append(c)
 
+    # OK
     def updSeedContainsCorePatternsWithNoCluster(self, indexs):
         for idx in indexs:
             p = self.dataset[idx]
@@ -93,12 +107,14 @@ class IncrementalDBSCAN:
                 return False
         return True
 
+    # OK
     def markAsNoise(self, p):
         p.setIsNoise(True)
         p.setAssignedCluster(-1)
 
     # 論文に沿うようにアルゴリズム修正済み
     # UpdSeedInsの集合を返す
+    # OK
     def getUpdSeedSet(self, pattern):
         updSeedIndex = []
         qdash = []
@@ -134,6 +150,7 @@ class IncrementalDBSCAN:
         return updSeedIndex
 
     # IncrementalDBSCANによるクラスタリングを実行
+    # OK
     def fit(self,point):
         # print(i)
         self.dataset.append(point)
@@ -158,10 +175,12 @@ class IncrementalDBSCAN:
     #            c.addPoint(p.getID())
     #            break
 
+    # OK
     def getClustersList(self):
         return self.clustersList
 
     # show the summary of clustering results
+    # OK
     def printClustersInformation(self):
         cluster_num = 1
         print("Dataset has "+str(len(self.dataset))+" Points")
@@ -173,6 +192,7 @@ class IncrementalDBSCAN:
             cluster_num += 1
 
     # return the final clustering labels of each data point
+    # OK
     def getLabels(self):
         labels = []
         for data in self.dataset:
