@@ -4,13 +4,13 @@ class Cluster:
         self.regions = []
         self.ID = id
         self.isActive = True
-        self.pointsIDs = []
-        self.pointsSeen = {}
+        self.pointsIDs = set([])
 
     def addPoint(self,index):
-        if not (index in self.pointsSeen.keys()):
-            self.pointsIDs.append(index)
-            self.pointsSeen[index] = True
+        self.pointsIDs.add(index)
+
+    def removePoint(self,index):
+        self.pointsIDs.remove(index)
 
     def getPointsIDs(self):
         return self.pointsIDs
