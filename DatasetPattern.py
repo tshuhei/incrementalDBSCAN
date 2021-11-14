@@ -61,6 +61,9 @@ class DatasetPattern:
     def addToNeighborhoodPoints(self, i):
         self.pointsAtEpsIndexs.append(i)
 
+    def removePointsAtEpsIndexs(self,i):
+        self.pointsAtEpsIndexs.remove(i)
+
     def isCore(self, minPts):
         if len(self.pointsAtEpsIndexs) >= minPts:
             return True

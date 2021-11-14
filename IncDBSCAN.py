@@ -12,9 +12,9 @@ class IncrementalDBSCAN:
         self.clustersCount = 0
 
     # 新たに追加された１点をクラスタリングする
-    def clusterPattern(self, pattern):
-        pattern.setIsVisited(True)
-        updSeedPointIndexs = self.getUpdSeedSet(pattern)
+    def addClusterPattern(self, pattern):
+        #pattern.setIsVisited(True)
+        updSeedPointIndexs = self.getUpdSeedInsSet(pattern)
         if len(updSeedPointIndexs) == 0:
             self.markAsNoise(pattern)
         elif self.updSeedContainsCorePatternsWithNoCluster(updSeedPointIndexs):
@@ -25,6 +25,16 @@ class IncrementalDBSCAN:
                 self.joinCluster(pattern, updSeedPointIndexs, jc)
             else:
                 self.mergeClusters(pattern, updSeedPointIndexs)
+    
+    def removeClusterPattern(self, pattern):
+        updSeedPointIndexs = self.getUpdSeedDelSet(pattern)
+        if len(updSeedPointIndexs) == 0: # 1. Removal
+            self.Removal()
+        elif self.updSeedDirectlyDensityReachable(updSeedPointIndexs): # 2. Reduction
+            self.Reduction()
+        else: # 3. Potential Split
+            self.Split()
+
 
     # 4.Merge UpdSeedに含まれる複数クラスタを統合して１つのクラスタに集約する
     def mergeClusters(self, point, indexs):
@@ -116,8 +126,26 @@ class IncrementalDBSCAN:
         p.setIsNoise(True)
         p.setAssignedCluster(-1)
 
-    # UpdSeedInsの集合を返す
-    def getUpdSeedSet(self, pattern):
+    def Removal(self):
+        pass
+
+    def Reduction(self):
+        pass
+
+    def updSeedDirectlyDensityReachable(self, indexs):
+        corePoints = set(indexs)
+        for idx in indexs:
+            p = self.dataset[idx]
+            neighbors = set(p.getPointsAtEpsIndexs())
+            if not neighbors.issuperset(corePoints):
+                return False
+        return True
+
+    def Split(self):
+        pass
+
+    # Return UpdSeed Ins
+    def getUpdSeedInsSet(self, pattern):
         updSeedIndex = []
         qdash = []
         neighbors = []
@@ -145,11 +173,44 @@ class IncrementalDBSCAN:
                 updSeedIndex.append(p.getID())
         return updSeedIndex
 
-    # IncrementalDBSCANによるクラスタリングを実行
+    # Return UpdSeed Del
+    def getUpdSeedDelSet(self, pattern):
+        updSeedIndex = []
+        qdash = set([])
+        neighbors = []
+        pointsAtEpsIndexs = pattern.getPointsAtEpsIndexs()
+        if len(pointsAtEpsIndexs) >= self.minPts:
+            qdash.add(pattern)
+        pattern.pointsAtEpsIndexs = []
+        for idx in pointsAtEpsIndexs:
+            p = self.dataset[idx]
+            if len(p.getPointsAtEpsIndexs()) == self.minPts:
+                qdash.add(p)
+            p.removePointsAtEpxIndexs(pattern.getID())
+        for p in qdash:
+            neighbors += p.getPointsAtEpsIndexs()
+        neighbors = set(neighbors)
+        for n in neighbors:
+            p = self.dataset[n]
+            if p.isCore(self.minPts):
+                updSeedIndex.append(p.getID())
+        return updSeedIndex
+
+    # Apply incremental DBSCAN to a new data point
     def fit(self,point):
         self.dataset.append(point)
-        self.clusterPattern(point)
+        self.addClusterPattern(point)
         return point.getAssignedCluster()
+
+    # Remove a given data point and apply incremental DBSCAN
+    def remove(self,id):
+        if id < 0 or id >= len(self.dataset):
+            print("Error: Index out of range")
+            return False
+        else:
+            point = self.dataset[id]
+            self.removeClusterPattern(point)
+            del self.dataset[id]        
 
     def getClustersList(self):
         return self.clustersList
