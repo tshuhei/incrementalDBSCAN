@@ -25,11 +25,18 @@ class IncrementalDBSCAN:
                 self.joinCluster(pattern, updSeedPointIndexs, jc)
             else:
                 self.mergeClusters(pattern, updSeedPointIndexs)
-    
+
+    # 論文の削除アルゴリズムを少し修正
+    # 修正１：削除対象がノイズであれば、そのまま削除するのみ
+    # 修正２：削除対象はコアであるなしにかかわらず、必ずq'の集合に入れる
+    # 論文の削除アルゴリズムそのままではうまく削除が成り立たない気がする？？
+    # NO
     def removeClusterPattern(self, pattern):
         updSeedPointIndexs = self.getUpdSeedDelSet(pattern)
-        if len(updSeedPointIndexs) == 0: # 1. Removal
-            self.Removal()
+        if pattern.getAssignedCluster == -1:
+            pass
+        elif len(updSeedPointIndexs) == 0: # 1. Removal
+            self.Removal(pattern)
         elif self.updSeedDirectlyDensityReachable(updSeedPointIndexs): # 2. Reduction
             self.Reduction()
         else: # 3. Potential Split
@@ -126,12 +133,22 @@ class IncrementalDBSCAN:
         p.setIsNoise(True)
         p.setAssignedCluster(-1)
 
-    def Removal(self):
-        pass
+    # OK
+    def Removal(self, pattern):
+        clusterID = pattern.getAssignedCluster()
+        cluster = self.clustersList[clusterID]
+        pointsIDs = cluster.getPointsIDs()
+        for id in pointsIDs:
+            p = self.dataset[id]
+            p.setIsNoise(True)
+            p.setAssignedCluster(-1)
+        cluster.setActive(False)
 
+    # NO
     def Reduction(self):
         pass
 
+    # OK
     def updSeedDirectlyDensityReachable(self, indexs):
         corePoints = set(indexs)
         for idx in indexs:
@@ -141,6 +158,7 @@ class IncrementalDBSCAN:
                 return False
         return True
 
+    # NO
     def Split(self):
         pass
 
@@ -179,9 +197,10 @@ class IncrementalDBSCAN:
         qdash = set([])
         neighbors = []
         pointsAtEpsIndexs = pattern.getPointsAtEpsIndexs()
-        if len(pointsAtEpsIndexs) >= self.minPts:
-            qdash.add(pattern)
-        pattern.pointsAtEpsIndexs = []
+        #if len(pointsAtEpsIndexs) >= self.minPts:
+        #    qdash.add(pattern)
+        qdash.add(pattern) # 修正２
+        #pattern.pointsAtEpsIndexs = []
         for idx in pointsAtEpsIndexs:
             p = self.dataset[idx]
             if len(p.getPointsAtEpsIndexs()) == self.minPts:
@@ -194,6 +213,9 @@ class IncrementalDBSCAN:
             p = self.dataset[n]
             if p.isCore(self.minPts):
                 updSeedIndex.append(p.getID())
+        if pattern.getID() in updSeedIndex:
+            updSeedIndex.remove(pattern.getID())
+            # 削除対象のデータポイントのpointsAtEpsIndexsは、自身を除いたものになる
         return updSeedIndex
 
     # Apply incremental DBSCAN to a new data point
