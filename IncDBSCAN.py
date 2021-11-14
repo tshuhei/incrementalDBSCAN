@@ -38,7 +38,7 @@ class IncrementalDBSCAN:
         elif len(updSeedPointIndexs) == 0: # 1. Removal
             self.Removal(pattern)
         elif self.updSeedDirectlyDensityReachable(updSeedPointIndexs): # 2. Reduction
-            self.Reduction()
+            self.Reduction(pattern)
         else: # 3. Potential Split
             self.Split()
 
@@ -145,8 +145,21 @@ class IncrementalDBSCAN:
         cluster.setActive(False)
 
     # NO
-    def Reduction(self):
-        pass
+    # 論文のアルゴリズムは間違ってる？q'の近傍点もノイズになる可能性あると思う
+    # 現在はpatternの近傍点のみ調べる実装
+    def Reduction(self, pattern):
+        for neighbor in pattern.getPointsAtEpsIndexs():
+            p = self.dataset[neighbor]
+            isNoise = True
+            for n in p.getPointsAtEpsIndexs():
+                if n.isCore(self.minPts):
+                    isNoise = False
+            if isNoise:
+                cluster = self.clustersList[p.getAssignedCluster()]
+                cluster.removePoint(p.getID())
+                p.setAssignedCluster(-1)
+        cluster = self.clustersList[pattern.getAssignedCluster()]
+        cluster.removePoint(pattern.getID())
 
     # OK
     def updSeedDirectlyDensityReachable(self, indexs):
