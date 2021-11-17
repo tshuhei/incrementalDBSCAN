@@ -32,15 +32,17 @@ class IncrementalDBSCAN:
     # 論文の削除アルゴリズムそのままではうまく削除が成り立たない気がする？？
     # NO
     def removeClusterPattern(self, pattern):
-        updSeedPointIndexs = self.getUpdSeedDelSet(pattern)
+        updSeedPointIndexs, neighbors = self.getUpdSeedDelSet(pattern)
         if pattern.getAssignedCluster == -1:
             pass
         elif len(updSeedPointIndexs) == 0: # 1. Removal
+            print("Removal")
             self.Removal(pattern)
         elif self.updSeedDirectlyDensityReachable(updSeedPointIndexs): # 2. Reduction
-            self.Reduction(pattern)
+            print("Reduction")
+            self.Reduction(pattern, neighbors)
         else: # 3. Potential Split
-            self.Split(pattern, updSeedPointIndexs)
+            self.Split(pattern, updSeedPointIndexs, neighbors)
 
 
     # 4.Merge UpdSeedに含まれる複数クラスタを統合して１つのクラスタに集約する
@@ -135,10 +137,19 @@ class IncrementalDBSCAN:
 
     # OK
     def Removal(self, pattern):
-        print("Removal")
         clusterID = pattern.getAssignedCluster()
         if clusterID == -1:
             return
+        print("pattern assigned cluster: {}".format(pattern.getAssignedCluster()))
+        print("pattern iscore: {}".format(pattern.isCore(self.minPts)))
+        print("pattern neighbors: {}".format(pattern.getPointsAtEpsIndexs()))
+        neighborexistCore = False
+        for n in pattern.getPointsAtEpsIndexs():
+            p = self.dataset[n]
+            if p.isCore(self.minPts):
+                neighborexistCore = True
+        print("exists core point in the neighbors: {}".format(neighborexistCore))
+
         cluster = self.clustersList[clusterID]
         pointsIDs = cluster.getPointsIDs()
         for id in pointsIDs:
@@ -148,20 +159,26 @@ class IncrementalDBSCAN:
         print(self.clustersList)
         for c in self.clustersList:
             print(c.getIsActive())
-        print(cluster.getID())
-        print(len(cluster.getPointsIDs()))
+        print("vanish cluster ID: {}".format(cluster.getID()))
+        print("number of points in the cluster: {}".format(len(cluster.getPointsIDs())))
         print("cluster vanished!")
+        print("pattern ID: {}".format(pattern.getID()))
+        print()
         cluster.setActive(False)
 
     # OK
     # 論文のアルゴリズムは間違ってる？q'の近傍点もノイズになる可能性あると思う
     # 現在はpatternの近傍点のみ調べる実装
-    def Reduction(self, pattern):
+    # q'の近傍点のノイズ性も調べる必要あり！
+    # neighbors: 全てのq'の近傍点の集合
+    def Reduction(self, pattern, neighbors):
         #print()
-        print("Reduction")
+        #print(" pattern iscore: {}".format(pattern.isCore(self.minPts)))
+        #print(" pattern neighbors: {}".format(pattern.getPointsAtEpsIndexs()))
         #print("Pattern ID: {}".format(pattern.getID()))
         #print(pattern.getPointsAtEpsIndexs())
-        for neighbor in pattern.getPointsAtEpsIndexs():
+
+        for neighbor in neighbors:
             p = self.dataset[neighbor]
             isNoise = True
             for n in p.getPointsAtEpsIndexs():
@@ -191,16 +208,17 @@ class IncrementalDBSCAN:
         return True
 
     # OK
-    def Split(self, pattern ,indexs):
+    def Split(self, pattern ,indexs, neighbors):
         #print("non split")
         connectivity, connectNodes = self.findDensityConnectivity(pattern, indexs)
         if len(connectivity) == 1:
             # Reduction
             # 本当にただReductionするだけでいいのか？？
-            self.Reduction(pattern)
+            print("Nonsplit Reduction")
+            self.Reduction(pattern, neighbors)
         else:
             # Split
-            #print("Split")
+            print("Split")
             for connect in connectNodes:
                 clusterID = self.clustersCount
                 c = Cluster(clusterID)
@@ -299,6 +317,8 @@ class IncrementalDBSCAN:
             p = self.dataset[idx]
             p.removePointsAtEpsIndexs(pattern.getID())
             if len(p.getPointsAtEpsIndexs()) == self.minPts - 1:
+                #print("YEAH!")
+                #print(" YEAH neighbors: {}".format(p.getPointsAtEpsIndexs()))
                 qdash.add(p)
         for p in qdash:
             neighbors += p.getPointsAtEpsIndexs()
@@ -310,7 +330,7 @@ class IncrementalDBSCAN:
         if pattern.getID() in updSeedIndex:
             updSeedIndex.remove(pattern.getID())
             # 削除対象のデータポイントのpointsAtEpsIndexsは、自身を除いたものになる
-        return updSeedIndex
+        return updSeedIndex, neighbors
 
     # Apply incremental DBSCAN to a new data point
     def fit(self,point):
