@@ -13,7 +13,6 @@ class IncrementalDBSCAN:
 
     # 新たに追加された１点をクラスタリングする
     def addClusterPattern(self, pattern):
-        #pattern.setIsVisited(True)
         updSeedPointIndexs = self.getUpdSeedInsSet(pattern)
         if len(updSeedPointIndexs) == 0:
             self.markAsNoise(pattern)
@@ -30,16 +29,13 @@ class IncrementalDBSCAN:
     # 修正１：削除対象がノイズであれば、そのまま削除するのみ
     # 修正２：削除対象はコアであるなしにかかわらず、必ずq'の集合に入れる
     # 論文の削除アルゴリズムそのままではうまく削除が成り立たない気がする？？
-    # NO
     def removeClusterPattern(self, pattern):
         updSeedPointIndexs, neighbors = self.getUpdSeedDelSet(pattern)
         if pattern.getAssignedCluster == -1:
             pass
         elif len(updSeedPointIndexs) == 0: # 1. Removal
-            print("Removal")
             self.Removal(pattern)
         elif self.updSeedDirectlyDensityReachable(updSeedPointIndexs): # 2. Reduction
-            print("Reduction")
             self.Reduction(pattern, neighbors)
         else: # 3. Potential Split
             self.Split(pattern, updSeedPointIndexs, neighbors)
@@ -135,52 +131,22 @@ class IncrementalDBSCAN:
         p.setIsNoise(True)
         p.setAssignedCluster(-1)
 
-    # OK
     def Removal(self, pattern):
         clusterID = pattern.getAssignedCluster()
         if clusterID == -1:
             return
-        print("pattern assigned cluster: {}".format(pattern.getAssignedCluster()))
-        print("pattern iscore: {}".format(pattern.isCore(self.minPts)))
-        print("pattern neighbors: {}".format(pattern.getPointsAtEpsIndexs()))
-        neighborexistCore = False
-        for n in pattern.getPointsAtEpsIndexs():
-            p = self.dataset[n]
-            if p.isCore(self.minPts):
-                neighborexistCore = True
-        print("exists core point in the neighbors: {}".format(neighborexistCore))
-
         cluster = self.clustersList[clusterID]
-        print("number of points in the cluster: {}".format(len(cluster.getPointsIDs())))
-        print("vanish cluster ID: {}".format(cluster.getID()))
         pointsIDs = cluster.getPointsIDs()
-        print("cluster points: {}".format(cluster.getPointsIDs()))
         for id in pointsIDs:
             p = self.dataset[id]
             p.setIsNoise(True)
             p.setAssignedCluster(-1)
-            #cluster.removePoint(id)
         cluster.pointsIDs = set([])
-        print(self.clustersList)
-        for c in self.clustersList:
-            print(c.getIsActive())
-        print("cluster vanished!")
-        print("pattern ID: {}".format(pattern.getID()))
-        print()
         cluster.setActive(False)
 
-    # OK
-    # 論文のアルゴリズムは間違ってる？q'の近傍点もノイズになる可能性あると思う
-    # 現在はpatternの近傍点のみ調べる実装
-    # q'の近傍点のノイズ性も調べる必要あり！
+    # 論文のアルゴリズムを修正：q'の近傍点のノイズ性も調べる
     # neighbors: 全てのq'の近傍点の集合
     def Reduction(self, pattern, neighbors):
-        #print()
-        #print(" pattern iscore: {}".format(pattern.isCore(self.minPts)))
-        #print(" pattern neighbors: {}".format(pattern.getPointsAtEpsIndexs()))
-        #print("Pattern ID: {}".format(pattern.getID()))
-        #print(pattern.getPointsAtEpsIndexs())
-
         for neighbor in neighbors:
             p = self.dataset[neighbor]
             isNoise = True
@@ -191,17 +157,12 @@ class IncrementalDBSCAN:
             if isNoise:
                 if p.getAssignedCluster() != -1:
                     cluster = self.clustersList[p.getAssignedCluster()]
-                    #print(p.getAssignedCluster())
-                    #print(cluster.getID())
-                    #print(cluster.getPointsIDs())
                     cluster.removePoint(p.getID())
                     p.setAssignedCluster(-1)
-        print("assigned cluster: {}".format(pattern.getAssignedCluster()))
         if pattern.getAssignedCluster() != -1:
             cluster = self.clustersList[pattern.getAssignedCluster()]
             cluster.removePoint(pattern.getID())
 
-    # OK
     def updSeedDirectlyDensityReachable(self, indexs):
         corePoints = set(indexs)
         for idx in indexs:
@@ -211,18 +172,13 @@ class IncrementalDBSCAN:
                 return False
         return True
 
-    # OK
     def Split(self, pattern ,indexs, neighbors):
-        #print("non split")
         connectivity, connectNodes = self.findDensityConnectivity(pattern, indexs)
         if len(connectivity) == 1:
             # Reduction
-            # 本当にただReductionするだけでいいのか？？
-            print("Nonsplit Reduction")
             self.Reduction(pattern, neighbors)
         else:
             # Split
-            print("Split")
             cluster = self.clustersList[pattern.getAssignedCluster()]
             cluster.setActive(False)
             for id in cluster.getPointsIDs():
@@ -242,14 +198,8 @@ class IncrementalDBSCAN:
                     p.setAssignedCluster(clusterID)
                     c.addPoint(p.getID())
                 self.clustersList.append(c)
-            #clu = self.clustersList[pattern.getAssignedCluster()]
-            #clu.removePoint(pattern.getID())
 
-
-
-    # OK
     def findDensityConnectivity(self, pattern, indexs):
-        print()
         connectivity = []
         connectNodes = []
         updseeds = set(indexs)
@@ -264,14 +214,7 @@ class IncrementalDBSCAN:
             queue.append(p)
             idseen = set([])
             while len(queue) != 0:
-                #print()
-                #print("queue length: {}".format(len(queue)))
-                #print("idseen length: {}".format(len(idseen)))
                 q = queue.pop(0)
-                #print("q ID: {}".format(q.getID()))
-                #print(idseen)
-                #print(q.getID() in idseen)
-                #print("queue length: {}".format(len(queue)))
                 if q.getID() in idseen:
                     continue
                 idseen.add(q.getID())
@@ -326,21 +269,11 @@ class IncrementalDBSCAN:
         neighbors = []
         pattern.removePointsAtEpsIndexs(pattern.getID())
         pointsAtEpsIndexs = pattern.getPointsAtEpsIndexs()
-        #if len(pointsAtEpsIndexs) >= self.minPts:
-        #    qdash.add(pattern)
         qdash.add(pattern) # 修正２
-        #print()
-        #print("Pattern ID: {}".format(pattern.getID()))
-        #print(pointsAtEpsIndexs)
-
-        #pattern.pointsAtEpsIndexs = []
         for idx in pointsAtEpsIndexs:
-            #print(idx)
             p = self.dataset[idx]
             p.removePointsAtEpsIndexs(pattern.getID())
             if len(p.getPointsAtEpsIndexs()) == self.minPts - 1:
-                #print("YEAH!")
-                #print(" YEAH neighbors: {}".format(p.getPointsAtEpsIndexs()))
                 qdash.add(p)
         for p in qdash:
             neighbors += p.getPointsAtEpsIndexs()
@@ -368,7 +301,6 @@ class IncrementalDBSCAN:
         else:
             point = self.dataset[id]
             self.removeClusterPattern(point)
-            #del self.dataset[id]      
             self.dataset[id] = None  
 
     def getClustersList(self):
