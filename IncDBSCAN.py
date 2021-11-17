@@ -151,16 +151,19 @@ class IncrementalDBSCAN:
         print("exists core point in the neighbors: {}".format(neighborexistCore))
 
         cluster = self.clustersList[clusterID]
+        print("number of points in the cluster: {}".format(len(cluster.getPointsIDs())))
+        print("vanish cluster ID: {}".format(cluster.getID()))
         pointsIDs = cluster.getPointsIDs()
+        print("cluster points: {}".format(cluster.getPointsIDs()))
         for id in pointsIDs:
             p = self.dataset[id]
             p.setIsNoise(True)
             p.setAssignedCluster(-1)
+            #cluster.removePoint(id)
+        cluster.pointsIDs = set([])
         print(self.clustersList)
         for c in self.clustersList:
             print(c.getIsActive())
-        print("vanish cluster ID: {}".format(cluster.getID()))
-        print("number of points in the cluster: {}".format(len(cluster.getPointsIDs())))
         print("cluster vanished!")
         print("pattern ID: {}".format(pattern.getID()))
         print()
@@ -193,6 +196,7 @@ class IncrementalDBSCAN:
                     #print(cluster.getPointsIDs())
                     cluster.removePoint(p.getID())
                     p.setAssignedCluster(-1)
+        print("assigned cluster: {}".format(pattern.getAssignedCluster()))
         if pattern.getAssignedCluster() != -1:
             cluster = self.clustersList[pattern.getAssignedCluster()]
             cluster.removePoint(pattern.getID())
@@ -219,6 +223,12 @@ class IncrementalDBSCAN:
         else:
             # Split
             print("Split")
+            cluster = self.clustersList[pattern.getAssignedCluster()]
+            cluster.setActive(False)
+            for id in cluster.getPointsIDs():
+                p = self.dataset[id]
+                p.setAssignedCluster(-1)
+            cluster.pointsIDs = set([])
             for connect in connectNodes:
                 clusterID = self.clustersCount
                 c = Cluster(clusterID)
@@ -232,11 +242,14 @@ class IncrementalDBSCAN:
                     p.setAssignedCluster(clusterID)
                     c.addPoint(p.getID())
                 self.clustersList.append(c)
+            #clu = self.clustersList[pattern.getAssignedCluster()]
+            #clu.removePoint(pattern.getID())
 
 
 
     # OK
     def findDensityConnectivity(self, pattern, indexs):
+        print()
         connectivity = []
         connectNodes = []
         updseeds = set(indexs)
@@ -249,10 +262,19 @@ class IncrementalDBSCAN:
             p = self.dataset[id]
             queue = []
             queue.append(p)
-            idseen = []
+            idseen = set([])
             while len(queue) != 0:
+                #print()
+                #print("queue length: {}".format(len(queue)))
+                #print("idseen length: {}".format(len(idseen)))
                 q = queue.pop(0)
-                idseen.append(q.getID())
+                #print("q ID: {}".format(q.getID()))
+                #print(idseen)
+                #print(q.getID() in idseen)
+                #print("queue length: {}".format(len(queue)))
+                if q.getID() in idseen:
+                    continue
+                idseen.add(q.getID())
                 for n in q.getPointsAtEpsIndexs():
                     if (n in idseen) or (n == pattern.getID()):
                         continue
