@@ -4,13 +4,12 @@ from Cluster import Cluster
 
 class IncrementalDBSCAN:
 
-    def __init__(self, minpts, eps, metric):
+    def __init__(self, minpts, eps):
         self.dataset = []
         self.minPts = minpts
         self.eps = eps
         self.clustersList = []
         self.clustersCount = 0
-        self.metric = metric
 
     # 新たに追加された１点をクラスタリングする
     def addClusterPattern(self, pattern):
@@ -242,12 +241,7 @@ class IncrementalDBSCAN:
             if not p is None:
                 if pattern.getID() == p.getID():
                     continue
-                if self.metric == "euclidean":
-                    # calculate the euclidean distance
-                    d = distance.euclidean(pattern.getFeatureVector(), p.getFeatureVector())
-                elif self.metric == "cosine":
-                    # calculate the cosine distance instead of eudlidean distance
-                    d = distance.cosine(pattern.getFeatureVector(), p.getFeatureVector())
+                d = distance.euclidean(pattern.getFeatureVector(), p.getFeatureVector())
                 if d > self.eps:
                     continue
                 pattern.addToNeighborhoodPoints(p.getID())
